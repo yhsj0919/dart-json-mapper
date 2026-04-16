@@ -12,7 +12,7 @@ class ChangeAnalyzer {
   Map<String, ComparableClassElement> getClassesMap(
           Iterable<ClassElement> classes) =>
       classes.fold({}, (value, element) {
-        value[element.getDisplayString()] = ComparableClassElement(element);
+        value[element.displayString()] = ComparableClassElement(element);
         return value;
       });
 

@@ -18,7 +18,7 @@ class ComparableClassElement {
 
   @override
   int get hashCode =>
-      _elementsListAsString(element.accessors).hashCode +
+      _elementsListAsString([...element.getters, ...element.setters]).hashCode +
       _elementsListAsString(element.methods).hashCode +
       _elementsListAsString(element.typeParameters).hashCode +
       _elementsListAsString(element.constructors).hashCode +

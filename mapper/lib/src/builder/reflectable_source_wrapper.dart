@@ -52,13 +52,13 @@ JsonMapper initializeJsonMapper($initSignature) {''';
       this.inputLibrary, this.options, this.mapperPubspec, this.inputPubspec) {
     _inputLibraryPackageName = getLibraryPackageName(inputLibrary);
     _libraryVisitor = LibraryVisitor(_inputLibraryPackageName);
-    inputLibrary.visitChildren(_libraryVisitor!);
+    _libraryVisitor!.visitLibrary(inputLibrary);
     _inputLibraryPath = inputLibrary.identifier
         .substring(0, inputLibrary.identifier.lastIndexOf('/') + 1);
   }
 
   String getLibraryPackageName(LibraryElement library) =>
-      'package:${library.source.uri.toString().split(':').last.split('/').first}';
+      'package:${library.firstFragment.source.uri.toString().split(':').last.split('/').first}';
 
   Iterable<String> get allowedIterables {
     return (options['iterables'] as String).split(',').map((x) => x.trim());
@@ -169,10 +169,10 @@ ${_renderEnumValues()}
     final prefix = '''x${importsMap.length}''';
     final key = importString;
     if (importsMap.containsKey(key)) {
-      importsMap[key]!.add(element.name);
+      importsMap[key]!.add(element.name!);
       _elementImportPrefix.putIfAbsent(element, () => _importPrefix[key]);
     }
-    importsMap.putIfAbsent(key, () => [element.name]);
+    importsMap.putIfAbsent(key, () => [element.name!]);
     _elementImportPrefix.putIfAbsent(element, () => prefix);
     _importPrefix.putIfAbsent(key, () => prefix);
   }
@@ -227,7 +227,7 @@ ${_renderEnumValues()}
 
   bool hasNoIncrementalChanges(LibraryElement library) {
     final incrementalLibraryVisitor = LibraryVisitor(_inputLibraryPackageName);
-    library.visitChildren(incrementalLibraryVisitor);
+    incrementalLibraryVisitor.visitLibrary(library);
     final hasChanges =
         ChangeAnalyzer(incrementalLibraryVisitor, _libraryVisitor).hasChanges;
     if (hasChanges) {

@@ -1,9 +1,8 @@
 import 'package:analyzer/dart/element/element.dart';
-import 'package:analyzer/dart/element/visitor.dart';
 
 import '../model/annotations.dart';
 
-class LibraryVisitor extends RecursiveElementVisitor {
+class LibraryVisitor {
   Map<num, ClassElement> visitedPublicClassElements = {};
   Map<num, ClassElement> visitedPublicAnnotatedClassElements = {};
   Map<num, EnumElement> visitedPublicAnnotatedEnumElements = {};
@@ -21,48 +20,33 @@ class LibraryVisitor extends RecursiveElementVisitor {
     ];
   }
 
-  @override
-  void visitLibraryExportElement(LibraryExportElement element) {
-    _visitLibrary(element.exportedLibrary);
-    super.visitLibraryExportElement(element);
+  void visitLibrary(LibraryElement element) {
+    _visitLibrary(element);
   }
 
-  @override
-  void visitLibraryImportElement(LibraryImportElement element) {
-    _visitLibrary(element.importedLibrary);
-    super.visitLibraryImportElement(element);
-  }
-
-  @override
-  void visitClassElement(ClassElement element) {
+  void _visitClassElement(ClassElement element) {
     if (!element.isPrivate &&
         !visitedPublicClassElements.containsKey(element.id)) {
       visitedPublicClassElements.putIfAbsent(element.id, () => element);
-      if (element.metadata.isNotEmpty &&
-          element.metadata.any((meta) =>
-              meta.computeConstantValue()!.type!.getDisplayString() ==
-              _annotationClassName)) {
+      if (_hasTargetAnnotation(element)) {
         visitedPublicAnnotatedClassElements.putIfAbsent(
             element.id, () => element);
       }
     }
-    super.visitClassElement(element);
   }
 
-  @override
-  void visitEnumElement(EnumElement element) {
+  void _visitEnumElement(EnumElement element) {
     if (!element.isPrivate &&
-        !visitedPublicAnnotatedEnumElements.containsKey(element.id)) {
+        !visitedPublicAnnotatedEnumElements.containsKey(element.id) &&
+        _hasTargetAnnotation(element)) {
       visitedPublicAnnotatedEnumElements.putIfAbsent(element.id, () => element);
-      if (element.metadata.isNotEmpty &&
-          element.metadata.any((meta) =>
-              meta.computeConstantValue()!.type!.getDisplayString() ==
-              _annotationClassName)) {
-        visitedPublicAnnotatedEnumElements.putIfAbsent(
-            element.id, () => element);
-      }
     }
-    super.visitEnumElement(element);
+  }
+
+  bool _hasTargetAnnotation(Element element) {
+    return element.metadata.annotations.any((meta) =>
+        meta.computeConstantValue()?.type?.getDisplayString() ==
+        _annotationClassName);
   }
 
   void _visitLibrary(LibraryElement? element) {
@@ -72,7 +56,18 @@ class LibraryVisitor extends RecursiveElementVisitor {
         (identifier.startsWith('asset:') ||
             identifier.startsWith(packageName!))) {
       visitedLibraries.putIfAbsent(identifier, () => element);
-      element!.visitChildren(this);
+      for (final classElement in element!.classes) {
+        _visitClassElement(classElement);
+      }
+      for (final enumElement in element.enums) {
+        _visitEnumElement(enumElement);
+      }
+      for (final libraryExport in element.firstFragment.libraryExports) {
+        _visitLibrary(libraryExport.exportedLibrary);
+      }
+      for (final libraryImport in element.firstFragment.libraryImports) {
+        _visitLibrary(libraryImport.importedLibrary);
+      }
     }
   }
 }
